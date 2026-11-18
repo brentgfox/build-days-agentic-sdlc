@@ -45,6 +45,29 @@ describe("product API", () => {
       query: { q: "lamp", category: "office" },
       items: [{ id: "aurora-desk-lamp" }],
     });
+
+    const sorted = await request(app)
+      .get("/api/products?q=notebook&category=office&sort=price-desc")
+      .expect(200);
+    expect(sorted.body).toMatchObject({
+      total: 1,
+      query: { q: "notebook", category: "office", sort: "price-desc" },
+      items: [{ id: "papertrail-notebook-set" }],
+    });
+
+    const ascending = await request(app)
+      .get("/api/products?sort=price-asc")
+      .expect(200);
+    expect(ascending.body.items.map(({ id }: { id: string }) => id)).toEqual([
+      "harbor-catchall-tray",
+      "papertrail-notebook-set",
+      "nesting-prep-bowls",
+      "trailmark-bottle",
+      "aurora-desk-lamp",
+      "cloudrest-throw",
+      "tideline-picnic-blanket",
+      "emberline-kettle",
+    ]);
   });
 
   it("returns product details and safe not-found responses", async () => {
@@ -78,6 +101,16 @@ describe("product API", () => {
       code: "VALIDATION_ERROR",
       fieldErrors: {
         category: expect.any(Array),
+      },
+    });
+
+    const invalidSort = await request(app)
+      .get("/api/products?sort=featured")
+      .expect(400);
+    expect(invalidSort.body.error).toMatchObject({
+      code: "VALIDATION_ERROR",
+      fieldErrors: {
+        sort: expect.any(Array),
       },
     });
   });

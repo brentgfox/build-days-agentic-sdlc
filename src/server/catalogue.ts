@@ -131,14 +131,28 @@ export class InMemoryProductCatalogue implements ProductCatalogue {
 
   list(query: ProductQuery = { q: "" }): Promise<Product[]> {
     const search = query.q.toLocaleLowerCase();
+    const filtered = this.items.filter((product) => {
+      const matchesCategory =
+        query.category === undefined || product.category === query.category;
+      const searchable =
+        `${product.name} ${product.shortDescription} ${product.description} ${product.features.join(" ")}`.toLocaleLowerCase();
+      return matchesCategory && (!search || searchable.includes(search));
+    });
+
+    if (query.sort === undefined) {
+      return Promise.resolve(filtered);
+    }
+
+    const direction = query.sort === "price-asc" ? 1 : -1;
     return Promise.resolve(
-      this.items.filter((product) => {
-        const matchesCategory =
-          query.category === undefined || product.category === query.category;
-        const searchable =
-          `${product.name} ${product.shortDescription} ${product.description} ${product.features.join(" ")}`.toLocaleLowerCase();
-        return matchesCategory && (!search || searchable.includes(search));
-      }),
+      filtered
+        .map((product, index) => ({ product, index }))
+        .sort(
+          (left, right) =>
+            direction * (left.product.priceCents - right.product.priceCents) ||
+            left.index - right.index,
+        )
+        .map(({ product }) => product),
     );
   }
 
