@@ -1,0 +1,13 @@
+services:
+  kosko:
+    image: kosko:local
+    build:
+      context: .
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org/}
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+    init: true
+    ports:
+      - "${KOSKO_PORT:-3000}:3000"

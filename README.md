@@ -65,6 +65,36 @@ gh aw version
 Do not add long-lived credentials. Record unavailable features honestly.
 A forecast with no sampled runs means unknown cost, not free execution.
 
+## Run KosKo locally with Docker
+
+Docker builds default to the public npm registry. If your organization
+configures an approved npm proxy, pass the registry already configured for npm:
+
+```powershell
+$env:NPM_REGISTRY = npm config get registry
+docker build --build-arg "NPM_REGISTRY=$env:NPM_REGISTRY" --tag kosko:local .
+docker run --detach --rm --name kosko --publish 3000:3000 kosko:local
+```
+
+Open `http://127.0.0.1:3000`, then verify or stop the container:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:3000/health
+Invoke-RestMethod http://127.0.0.1:3000/ready
+Invoke-RestMethod http://127.0.0.1:3000/api/products
+docker stop kosko
+```
+
+Docker Compose uses the same registry and exposes port 3000 by default:
+
+```powershell
+$env:NPM_REGISTRY = npm config get registry
+docker compose up --build --detach
+docker compose down
+```
+
+Set `$env:KOSKO_PORT` before `docker compose up` to use another host port.
+
 ## References
 
 - [App Sessions and modes](https://docs.github.com/en/copilot/how-tos/github-copilot-app/agent-sessions)
