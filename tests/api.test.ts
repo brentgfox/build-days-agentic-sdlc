@@ -4,6 +4,7 @@ import {
   InMemoryProductCatalogue,
   type ProductCatalogue,
 } from "../src/server/catalogue.js";
+import type { ProductListResponse } from "../src/shared/contracts.js";
 import type { Logger } from "../src/server/logger.js";
 
 const silentLogger: Logger = { log: () => undefined };
@@ -58,7 +59,8 @@ describe("product API", () => {
     const ascending = await request(app)
       .get("/api/products?sort=price-asc")
       .expect(200);
-    expect(ascending.body.items.map(({ id }: { id: string }) => id)).toEqual([
+    const ascendingBody = ascending.body as ProductListResponse;
+    expect(ascendingBody.items.map(({ id }) => id)).toEqual([
       "harbor-catchall-tray",
       "papertrail-notebook-set",
       "nesting-prep-bowls",
