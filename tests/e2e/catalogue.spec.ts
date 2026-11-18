@@ -14,7 +14,7 @@ test.describe("KosKo catalogue", () => {
     await expect(
       page.getByRole("heading", { name: "KosKo goods" }),
     ).toBeVisible();
-    await expect(page.getByText("8 products", { exact: true })).toBeVisible();
+    await expect(page.getByText("9 products", { exact: true })).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Aurora Desk Lamp" }),
     ).toBeVisible();
