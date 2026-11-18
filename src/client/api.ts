@@ -3,6 +3,7 @@ import type {
   Product,
   ProductCategory,
   ProductListResponse,
+  ProductSort,
 } from "../shared/contracts.js";
 
 export class ApiRequestError extends Error {
@@ -41,6 +42,7 @@ async function request<T>(url: string): Promise<T> {
 export interface ProductFilters {
   q?: string;
   category?: ProductCategory;
+  sort?: ProductSort;
 }
 
 export const listProducts = (filters: ProductFilters = {}): Promise<ProductListResponse> => {
@@ -48,6 +50,7 @@ export const listProducts = (filters: ProductFilters = {}): Promise<ProductListR
   const query = filters.q?.trim();
   if (query) search.set("q", query);
   if (filters.category) search.set("category", filters.category);
+  if (filters.sort) search.set("sort", filters.sort);
   const suffix = search.size > 0 ? `?${search.toString()}` : "";
   return request<ProductListResponse>(`/api/products${suffix}`);
 };
