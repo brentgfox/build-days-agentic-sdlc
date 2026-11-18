@@ -55,9 +55,45 @@ test.describe("KosKo catalogue", () => {
     ).toHaveCount(0);
   });
 
+  test("sorts by price and composes sorting with catalogue filters", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const productNames = page.locator(".product-card h3");
+    await expect(productNames.first()).toHaveText("Aurora Desk Lamp");
+
+    await page
+      .getByRole("combobox", { name: "Sort products" })
+      .selectOption("price-asc");
+    await expect(productNames.first()).toHaveText("Harbor Catchall Tray");
+    await expect(productNames.last()).toHaveText("Emberline Kettle");
+
+    await page.getByRole("combobox", { name: "Category" }).selectOption("office");
+    await expect(productNames).toHaveText([
+      "Papertrail Notebook Set",
+      "Aurora Desk Lamp",
+    ]);
+
+    await page
+      .getByRole("combobox", { name: "Sort products" })
+      .selectOption("price-desc");
+    await expect(productNames).toHaveText([
+      "Aurora Desk Lamp",
+      "Papertrail Notebook Set",
+    ]);
+
+    await page.getByRole("searchbox", { name: "Search products" }).fill("lamp");
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await expect(productNames).toHaveText(["Aurora Desk Lamp"]);
+  });
+
   test("shows and clears the no-results state", async ({ page }) => {
     await page.goto("/");
 
+    await page
+      .getByRole("combobox", { name: "Sort products" })
+      .selectOption("price-desc");
     await page
       .getByRole("searchbox", { name: "Search products" })
       .fill("definitely-not-a-product");
@@ -68,6 +104,12 @@ test.describe("KosKo catalogue", () => {
     ).toBeVisible();
     await page.getByRole("button", { name: "Clear filters" }).click();
     await expect(page.getByText("8 products", { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("combobox", { name: "Sort products" }),
+    ).toHaveValue("");
+    await expect(page.locator(".product-card h3").first()).toHaveText(
+      "Aurora Desk Lamp",
+    );
   });
 
   test("updates cart quantities and totals", async ({ page }) => {
@@ -79,6 +121,9 @@ test.describe("KosKo catalogue", () => {
     await page
       .getByRole("spinbutton", { name: "Quantity for Aurora Desk Lamp" })
       .fill("2");
+    await page
+      .getByRole("combobox", { name: "Sort products" })
+      .selectOption("price-asc");
 
     await expect(page.getByText("2 items", { exact: true })).toBeVisible();
     await expect(
