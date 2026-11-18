@@ -1,7 +1,11 @@
 import process from "node:process";
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL = "http://127.0.0.1:3000";
+const projectServers = [
+  { name: "chromium", port: 41731, device: devices["Desktop Chrome"] },
+  { name: "firefox", port: 41732, device: devices["Desktop Firefox"] },
+  { name: "webkit", port: 41733, device: devices["Desktop Safari"] },
+] as const;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -13,32 +17,27 @@ export default defineConfig({
     ? [["line"], ["html", { open: "never" }]]
     : [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
-  webServer: {
+  webServer: projectServers.map(({ port }) => ({
     command: "npm start",
-    url: `${baseURL}/health`,
+    url: `http://127.0.0.1:${port}/health`,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
     env: {
       NODE_ENV: "production",
-      PORT: "3000",
+      PORT: String(port),
     },
-  },
-  projects: [
-    {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+  })),
+  projects: projectServers.map(({ name, port, device }) => ({
+    name,
+    use: {
+      ...device,
+      baseURL: `http://127.0.0.1:${port}`,
+      ...(name === "chromium" && process.env.PLAYWRIGHT_USE_EDGE
+        ? { channel: "msedge" as const }
+        : {}),
     },
-    {
-      name: "firefox",
-      use: { ...devices["Desktop Firefox"] },
-    },
-    {
-      name: "webkit",
-      use: { ...devices["Desktop Safari"] },
-    },
-  ],
+  })),
 });

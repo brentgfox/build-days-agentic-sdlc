@@ -48,6 +48,15 @@ describe("KosKo client", () => {
     expect(screen.getByRole("link", { name: "KosKo home" })).toHaveAttribute("href", "#catalogue");
     expect(screen.getByRole("status")).toHaveTextContent("Loading products");
     expect(await screen.findByRole("heading", { name: product.name })).toBeVisible();
+    const sort = screen.getByLabelText("Sort products");
+    expect(sort).toHaveValue("");
+    expect(within(sort).getByRole("option", { name: "Default" })).toBeVisible();
+    expect(
+      within(sort).getByRole("option", { name: "Price low to high" }),
+    ).toBeVisible();
+    expect(
+      within(sort).getByRole("option", { name: "Price high to low" }),
+    ).toBeVisible();
 
     await user.selectOptions(screen.getByLabelText("Category"), "outdoors");
     await waitFor(() =>
@@ -56,11 +65,37 @@ describe("KosKo client", () => {
         expect.anything(),
       ),
     );
+    await user.selectOptions(sort, "price-asc");
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/products?category=outdoors&sort=price-asc",
+        expect.anything(),
+      ),
+    );
+    await user.selectOptions(sort, "price-desc");
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/products?category=outdoors&sort=price-desc",
+        expect.anything(),
+      ),
+    );
 
     await user.type(screen.getByLabelText("Search products"), "missing");
     await user.click(screen.getByRole("button", { name: "Search" }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/products?q=missing&category=outdoors&sort=price-desc",
+        expect.anything(),
+      ),
+    );
     expect(await screen.findByRole("heading", { name: "No products found" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Clear filters" }));
+    expect(sort).toHaveValue("");
+    expect(screen.getByLabelText("Category")).toHaveValue("");
+    expect(screen.getByLabelText("Search products")).toHaveValue("");
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith("/api/products", expect.anything()),
+    );
     expect(await screen.findByRole("heading", { name: product.name })).toBeVisible();
   });
 

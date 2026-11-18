@@ -62,10 +62,12 @@ export const createApp = ({
   );
 
   app.get("/health", (_request, response) => {
+    response.setHeader("Cache-Control", "no-store");
     response.json({ status: "healthy" });
   });
 
   app.get("/ready", async (_request, response) => {
+    response.setHeader("Cache-Control", "no-store");
     try {
       await catalogue.checkHealth();
       response.json({ status: "ready" });
@@ -90,6 +92,7 @@ export const createApp = ({
         typeof request.query.category === "string"
           ? request.query.category
           : undefined,
+      sort: typeof request.query.sort === "string" ? request.query.sort : undefined,
     });
     const items = await catalogue.list(query);
     response.json({

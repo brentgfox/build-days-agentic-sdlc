@@ -4,6 +4,7 @@ import {
   InMemoryProductCatalogue,
   type ProductCatalogue,
 } from "../src/server/catalogue.js";
+import type { ProductListResponse } from "../src/shared/contracts.js";
 import type { Logger } from "../src/server/logger.js";
 
 const silentLogger: Logger = { log: () => undefined };
@@ -13,8 +14,27 @@ describe("product API", () => {
     const catalogue = new InMemoryProductCatalogue();
     const app = createApp({ catalogue, logger: silentLogger });
 
-    await request(app).get("/health").expect(200, { status: "healthy" });
-    await request(app).get("/ready").expect(200, { status: "ready" });
+    await request(app)
+      .get("/health")
+      .expect("Cache-Control", "no-store")
+      .expect(200, { status: "healthy" });
+    await request(app)
+      .get("/ready")
+      .expect("Cache-Control", "no-store")
+      .expect(200, { status: "ready" });
+  });
+
+  it("returns no-store for HEAD liveness requests without a response body", async () => {
+    const app = createApp({
+      catalogue: new InMemoryProductCatalogue(),
+      logger: silentLogger,
+    });
+
+    const response = await request(app)
+      .head("/health")
+      .expect("Cache-Control", "no-store")
+      .expect(200);
+    expect(response.text ?? "").toBe("");
   });
 
   it("returns 503 when the catalogue is unavailable", async () => {
@@ -22,7 +42,10 @@ describe("product API", () => {
     catalogue.checkHealth = () => Promise.reject(new Error("secret details"));
     const app = createApp({ catalogue, logger: silentLogger });
 
-    const response = await request(app).get("/ready").expect(503);
+    const response = await request(app)
+      .get("/ready")
+      .expect("Cache-Control", "no-store")
+      .expect(503);
     expect(response.text).not.toContain("secret details");
     expect(response.body.error.code).toBe("CATALOGUE_UNAVAILABLE");
   });
@@ -45,6 +68,30 @@ describe("product API", () => {
       query: { q: "lamp", category: "office" },
       items: [{ id: "aurora-desk-lamp" }],
     });
+
+    const sorted = await request(app)
+      .get("/api/products?q=notebook&category=office&sort=price-desc")
+      .expect(200);
+    expect(sorted.body).toMatchObject({
+      total: 1,
+      query: { q: "notebook", category: "office", sort: "price-desc" },
+      items: [{ id: "papertrail-notebook-set" }],
+    });
+
+    const ascending = await request(app)
+      .get("/api/products?sort=price-asc")
+      .expect(200);
+    const ascendingBody = ascending.body as ProductListResponse;
+    expect(ascendingBody.items.map(({ id }) => id)).toEqual([
+      "harbor-catchall-tray",
+      "papertrail-notebook-set",
+      "nesting-prep-bowls",
+      "trailmark-bottle",
+      "aurora-desk-lamp",
+      "cloudrest-throw",
+      "tideline-picnic-blanket",
+      "emberline-kettle",
+    ]);
   });
 
   it("returns product details and safe not-found responses", async () => {
@@ -78,6 +125,16 @@ describe("product API", () => {
       code: "VALIDATION_ERROR",
       fieldErrors: {
         category: expect.any(Array),
+      },
+    });
+
+    const invalidSort = await request(app)
+      .get("/api/products?sort=featured")
+      .expect(400);
+    expect(invalidSort.body.error).toMatchObject({
+      code: "VALIDATION_ERROR",
+      fieldErrors: {
+        sort: expect.any(Array),
       },
     });
   });

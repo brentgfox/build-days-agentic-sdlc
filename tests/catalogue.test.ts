@@ -30,6 +30,38 @@ describe("product catalogue", () => {
     await expect(catalogue.list({ q: "", category: "kitchen" })).resolves.toHaveLength(2);
   });
 
+  it("sorts filtered products by price without changing the default seed order", async () => {
+    const catalogue = new InMemoryProductCatalogue();
+    const originalOrder = products.map((product) => product.id);
+
+    await expect(
+      catalogue.list({ q: "", category: "office", sort: "price-asc" }),
+    ).resolves.toEqual([
+      expect.objectContaining({ id: "papertrail-notebook-set" }),
+      expect.objectContaining({ id: "aurora-desk-lamp" }),
+    ]);
+    await expect(catalogue.list({ q: "", sort: "price-desc" })).resolves.toEqual(
+      [...products].sort((left, right) => right.priceCents - left.priceCents),
+    );
+    expect(products.map((product) => product.id)).toEqual(originalOrder);
+    await expect(catalogue.list()).resolves.toEqual(products);
+  });
+
+  it("preserves catalogue order for products with equal prices", async () => {
+    const equalPriceProducts = products.slice(0, 3).map((product) => ({
+      ...product,
+      priceCents: 2500,
+    }));
+    const catalogue = new InMemoryProductCatalogue(equalPriceProducts);
+
+    await expect(catalogue.list({ q: "", sort: "price-asc" })).resolves.toEqual(
+      equalPriceProducts,
+    );
+    await expect(catalogue.list({ q: "", sort: "price-desc" })).resolves.toEqual(
+      equalPriceProducts,
+    );
+  });
+
   it("returns product details and rejects missing products", async () => {
     const catalogue = new InMemoryProductCatalogue();
 
