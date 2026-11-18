@@ -7,6 +7,8 @@ export const productCategories = [
   "kitchen",
 ] as const;
 
+export const productSortOptions = ["price-asc", "price-desc"] as const;
+
 export const fieldLimits = {
   search: 80,
   quantity: 20,
@@ -15,6 +17,7 @@ export const fieldLimits = {
 export const productQuerySchema = z.object({
   q: z.string().trim().max(fieldLimits.search).optional().default(""),
   category: z.enum(productCategories).optional(),
+  sort: z.enum(productSortOptions).optional(),
 });
 
 export const cartQuantitySchema = z.object({
@@ -26,6 +29,7 @@ export const cartQuantitySchema = z.object({
 });
 
 export type ProductCategory = (typeof productCategories)[number];
+export type ProductSort = (typeof productSortOptions)[number];
 export type ProductQuery = z.infer<typeof productQuerySchema>;
 
 export interface Product {

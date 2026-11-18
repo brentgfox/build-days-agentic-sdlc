@@ -6,21 +6,30 @@ import {
 
 describe("commerce contracts", () => {
   it("normalizes valid product queries", () => {
-    expect(productQuerySchema.parse({ q: "  lamp  ", category: "office" })).toEqual({
+    expect(
+      productQuerySchema.parse({
+        q: "  lamp  ",
+        category: "office",
+        sort: "price-asc",
+      }),
+    ).toEqual({
       q: "lamp",
       category: "office",
+      sort: "price-asc",
     });
+    expect(productQuerySchema.parse({})).toEqual({ q: "" });
   });
 
-  it("rejects unsupported categories and oversized search", () => {
+  it("rejects unsupported categories, sorting, and oversized search", () => {
     const result = productQuerySchema.safeParse({
       q: "x".repeat(fieldLimits.search + 1),
       category: "electronics",
+      sort: "rating",
     });
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.issues.map((issue) => issue.path[0])).toEqual(
-        expect.arrayContaining(["q", "category"]),
+        expect.arrayContaining(["q", "category", "sort"]),
       );
     }
   });
